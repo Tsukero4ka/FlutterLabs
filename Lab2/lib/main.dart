@@ -59,6 +59,10 @@ class _CalculatorAppState extends State<CalculatorApp> {
   double resultFuelOil = 0.0;
   double resultGas = 0.0;
 
+  // Calculate emission factors
+  final double coalParticulate = calculateEmissionFactor(20.47, 0.8, 25.20, 1.5, 0.985);
+  final double fuelOilParticulate = calculateEmissionFactor(39.48, 1.0, 0.15, 0.0, 0.985);
+
   @override
   void dispose() {
     coalAmountController.dispose();
@@ -71,13 +75,13 @@ class _CalculatorAppState extends State<CalculatorApp> {
     setState(() {
       resultCoal = calculateCoalEmission(
         double.tryParse(coalAmountController.text) ?? 0.0,
-        0.8,
+        coalParticulate,
         20.47,
       );
 
       resultFuelOil = calculateFuelOilEmission(
         double.tryParse(fuelOilAmountController.text) ?? 0.0,
-        1.0,
+        fuelOilParticulate,
         39.48,
       );
 
@@ -90,11 +94,6 @@ class _CalculatorAppState extends State<CalculatorApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Emission Calculator'),
-        backgroundColor: Colors.blueAccent,
-        elevation: 4,
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -103,42 +102,62 @@ class _CalculatorAppState extends State<CalculatorApp> {
             children: [
               Text(
                 'Emission Calculator',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.white),
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
+
               const SizedBox(height: 16),
-              _buildTextField(coalAmountController, 'Amount of coal (tons)', Icons.whatshot),
+
+              TextField(
+                controller: coalAmountController,
+                decoration: const InputDecoration(
+                  labelText: 'Amount of coal (tons)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+
               const SizedBox(height: 8),
-              _buildTextField(fuelOilAmountController, 'Amount of fuel oil (tons)', Icons.local_gas_station),
+
+              TextField(
+                controller: fuelOilAmountController,
+                decoration: const InputDecoration(
+                  labelText: 'Amount of fuel oil (tons)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+
               const SizedBox(height: 8),
-              _buildTextField(gasAmountController, 'Amount of natural gas (cubic meters)', Icons.cloud_queue),
+
+              TextField(
+                controller: gasAmountController,
+                decoration: const InputDecoration(
+                  labelText: 'Amount of natural gas (cubic meters)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+
               const SizedBox(height: 16),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: calculateEmissions,
-                  child: const Text('Calculate', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text('Calculate'),
                 ),
               ),
+
               const SizedBox(height: 16),
-              Text('Coal emission: ${resultCoal.toStringAsFixed(6)} tons', style: TextStyle(color: Colors.white70)),
-              Text('Fuel oil emission: ${resultFuelOil.toStringAsFixed(6)} tons', style: TextStyle(color: Colors.white70)),
-              Text('Gas emission: ${resultGas.toStringAsFixed(6)} tons', style: TextStyle(color: Colors.white70)),
+
+              // Results
+              Text('Coal emission: ${resultCoal.toStringAsFixed(6)} tons'),
+              Text('Fuel oil emission: ${resultFuelOil.toStringAsFixed(6)} tons'),
+              Text('Gas emission: ${resultGas.toStringAsFixed(6)} tons'),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Colors.white70),
-        border: OutlineInputBorder(),
-      ),
-      keyboardType: TextInputType.number,
     );
   }
 }
@@ -154,4 +173,14 @@ double calculateFuelOilEmission(double amount, double emissionFactor, double hea
 
 double calculateGasEmission(double amount) {
   return 0.0; // No emissions for natural gas
+}
+
+double calculateEmissionFactor(
+    double Q,
+    double a,
+    double A,
+    double gamma,  // Heat loss due to incomplete combustion of volatile matter
+    double etaZU,  // Dust collection system efficiency
+    ) {
+  return (1e+6 / Q) * a * (A / (100 - gamma)) * (1 - etaZU);
 }
